@@ -2,9 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"io"
-	mux "mux-master"
 	"net/http"
 	"neural_network/store"
 	"os"
@@ -23,8 +23,7 @@ func New(nnname string) *Handler {
 }
 
 func (handler *Handler) TrainNN(writer http.ResponseWriter, request *http.Request) {
-	trainObject := mux.Vars(request)["train"]
-	handler.logger.Warn(trainObject)
+	trainObject := mux.Vars(request)["trainObject"]
 	request.ParseMultipartForm(32 << 20)
 	files := []string{}
 	for fileForm, _ := range request.MultipartForm.File {

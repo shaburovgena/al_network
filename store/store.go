@@ -20,10 +20,19 @@ type Store struct {
 func New(nnname string) *Store {
 	return &Store{
 		logger:  logrus.New(),
-		NN:      initStore(nnname),
 		Results: initResults(),
+		NN:      initNN(nnname),
 		nnname:  nnname,
 	}
+}
+func initNN(nnname string) *gonn.NeuralNetwork {
+	nn := &gonn.NeuralNetwork{}
+	if _, err := os.Stat(nnname); os.IsNotExist(err) {
+		nn = gonn.DefaultNetwork(1600, 256, 26, false)
+	} else {
+		nn = gonn.LoadNN(nnname)
+	}
+	return nn
 }
 func initResults() map[string]int {
 	file, err := os.Open(storePath)
@@ -40,30 +49,13 @@ func initResults() map[string]int {
 	return result
 }
 
-func initStore(nnname string) *gonn.NeuralNetwork {
-	logger := logrus.New()
-	logger.Info("Initialisation store started")
-	path := nnname
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return gonn.DefaultNetwork(1600, 256, 256, false)
-	}
-	logger.Info("Neural network loaded from ", path)
-	n := gonn.LoadNN(path)
-	return n
-}
-
 func (store *Store) getTargetObjectIndex(name string) int {
 	for k, v := range store.Results {
-		store.logger.Info("Index ", v, " object ", k)
 		if k == name {
 			return v
 		}
 	}
-	l := len(store.Results)
-	store.logger.Info("Index ", l, " name ", name)
-
-	store.Results[name] = l
-	return l
+	return 0
 }
 func (store *Store) GetResult(incomeFile string) (string, error) {
 	max := -99999.0
@@ -73,22 +65,27 @@ func (store *Store) GetResult(incomeFile string) (string, error) {
 		return "", err
 	}
 	out := store.NN.Forward(income)
-	store.logger.Info(out)
 	// Ищем позицию нейрона с самым большим весом.
+
 	for i, value := range out {
 		if value > max {
 			max = value
 			pos = i
 		}
 	}
-	store.logger.Info("Result ", pos)
-	return "", nil
+	store.logger.Info("Result number ", pos)
+	for k, v := range store.Results {
+		if v == pos {
+			return k, nil
+		}
+	}
+	return "Nothing", nil
 }
 func (store *Store) Train(files []string, trainObject string) error {
 	trainVars := [][]float64{}
-	targetOBjectIndex := store.getTargetObjectIndex(trainObject)
+	targetObjectIndex := store.getTargetObjectIndex(trainObject)
 	lenFiles := len(files)
-	target := store.generateTarget(lenFiles, targetOBjectIndex)
+	target := store.generateTarget(lenFiles, targetObjectIndex)
 	for _, filename := range files {
 		path := "train/files/" + filename
 		x1, err := vector.GetVectorFromImage(path)
@@ -114,7 +111,7 @@ func (store *Store) generateTarget(count int, index int) [][]float64 {
 
 	for i := 0; i < count; i++ {
 		var t []float64
-		for j := 0; j < 256; j++ {
+		for j := 0; j < len(store.Results); j++ {
 			if j == index {
 				t = append(t, 1)
 			} else {

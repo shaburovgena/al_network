@@ -43,6 +43,6 @@ func (server *APIServer) configureLogger() error {
 }
 
 func (server *APIServer) configureRouter() {
-	server.router.HandleFunc("/train/{train}", server.handler.TrainNN).Methods("POST")
+	server.router.HandleFunc("/train/{trainObject}", server.handler.TrainNN).Methods("POST")
 	server.router.HandleFunc("/result", server.handler.GetResult).Methods("POST")
 }

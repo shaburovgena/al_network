@@ -77,5 +77,5 @@ func CreateNN() {
 	nn.Train(input, target, 100000)
 
 	// Сохраняем готовую НС в файл.
-	gonn.DumpNN("nn_test", nn)
+	gonn.DumpNN("gonn", nn)
 }
